@@ -1,0 +1,286 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate V26 FIX HAPUS</title>
+<style>
+body{font-family:Arial;background:#f3f3f3;padding:12px}
+.container{max-width:900px;margin:auto}
+textarea{width:100%;height:260px;border-radius:14px;border:1px solid #ccc;padding:10px;font-size:12px;box-sizing:border-box}
+button{border:none;border-radius:12px;padding:10px 14px;margin-top:10px;margin-right:8px;color:#fff;font-size:12px;cursor:pointer}
+.biru{background:#1565d8}.hijau{background:#1b8f4b}.orange{background:#f57c00}.merah{background:#d32f2f}
+.card{background:#fff;padding:14px;border-radius:16px;margin-top:18px}
+.hasil{white-space:pre-wrap;font-size:12px;line-height:1.7}
+.total{margin-top:10px;font-size:14px}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h2>Ultimate V26 FIX HAPUS</h2>
+
+<textarea id="input" placeholder="Paste data TAB di sini"></textarea><br>
+
+<button class="biru" onclick="susun()">Susun Semua</button>
+<button class="hijau" onclick="copyAll()">Salin Semua</button>
+<button class="orange" onclick="downloadTXT()">Download TXT</button>
+<button class="merah" onclick="hapusRiwayat()">Hapus Riwayat</button>
+
+<div class="total" id="total">Total data: 0</div>
+
+<div id="hasil"></div>
+
+</div>
+
+<script>
+
+let allText = "";
+
+function formatSaldo(num){
+return Number(num || 0).toLocaleString('id-ID');
+}
+
+function minusBulan(tgl){
+
+if(!tgl || tgl.indexOf("-") === -1){
+return tgl;
+}
+
+const p = tgl.split("-");
+
+let hari = p[0];
+let bulan = parseInt(p[1]);
+let tahun = parseInt(p[2]);
+
+bulan--;
+
+if(bulan < 1){
+bulan = 12;
+tahun--;
+}
+
+bulan = String(bulan).padStart(2,"0");
+
+return hari + "-" + bulan + "-" + tahun;
+
+}
+
+function susun(){
+
+const raw = document.getElementById("input").value;
+
+const hasil = document.getElementById("hasil");
+
+hasil.innerHTML = "";
+
+allText = "";
+
+const rows = raw.split("\n").filter(x => x.trim() !== "");
+
+let total = 0;
+
+rows.forEach((row,index)=>{
+
+row = row.replace(/success/gi,"").trim();
+
+const col = row.split("\t");
+
+if(col.length < 13){
+return;
+}
+
+total++;
+
+const noKpj = col[1] || "";
+const nik = col[2] || "";
+const nama = col[3] || "";
+const ttl = col[4] || "";
+const jk = col[7] || "";
+const jumlah = col[8] || "";
+const saldo = col[9] || "";
+const perusahaan = col[10] || "";
+const tanggalInput = col[12] || "";
+
+const gender = jk === "P" ? "WANITA" : "PRIA";
+
+let sensor = "TUNGGAL";
+let nominal = formatSaldo(saldo);
+
+if(jumlah !== "1"){
+sensor = "SENSOR JMO OK";
+nominal = "GLOBAL " + nominal;
+}
+
+const tanggal = "N/A " + minusBulan(tanggalInput);
+
+const text = nik + "\n" +
+gender + "\n" +
+ttl + "\n\n" +
+sensor + "\n" +
+nominal + "\n" +
+perusahaan + "\n" +
+tanggal + "\n\n" +
+"Qwer123@" + "\n" +
+noKpj + "\n" +
+nama;
+
+allText += text + "\n\n====================\n\n";
+
+const card = document.createElement("div");
+
+card.className = "card";
+card.id = "card_" + index;
+
+card.innerHTML = `
+<button class="hijau" onclick="copyText(${index})">📋 Salin</button>
+<button class="biru" onclick="simpan()">💾</button>
+<button class="merah" onclick="hapusData(${index})">🗑️</button>
+
+<div class="hasil" id="h${index}" contenteditable="true">${text}</div>
+`;
+
+hasil.appendChild(card);
+
+});
+
+document.getElementById("total").innerText = "Total data: " + total;
+
+simpan();
+
+}
+
+window.onload = function(){
+
+const i = localStorage.getItem("uv26_input");
+const h = localStorage.getItem("uv26_hasil");
+const t = localStorage.getItem("uv26_total");
+const a = localStorage.getItem("uv26_all");
+
+if(i){
+document.getElementById("input").value = i;
+}
+
+if(h){
+document.getElementById("hasil").innerHTML = h;
+}
+
+if(t){
+document.getElementById("total").innerText = "Total data: " + t;
+}
+
+if(a){
+allText = a;
+}
+
+}
+
+function fallback(text){
+
+const ta = document.createElement("textarea");
+
+ta.value = text;
+
+document.body.appendChild(ta);
+
+ta.select();
+
+document.execCommand("copy");
+
+document.body.removeChild(ta);
+
+alert("Berhasil disalin");
+
+}
+
+function salin(text){
+
+if(navigator.clipboard){
+
+navigator.clipboard.writeText(text)
+.then(()=>alert("Berhasil disalin"))
+.catch(()=>fallback(text));
+
+}else{
+
+fallback(text);
+
+}
+
+}
+
+function copyText(i){
+
+const el = document.getElementById("h"+i);
+
+if(el){
+salin(el.innerText);
+}
+
+}
+
+function copyAll(){
+
+salin(allText);
+
+}
+
+function simpan(){
+
+localStorage.setItem("uv26_input", document.getElementById("input").value);
+localStorage.setItem("uv26_hasil", document.getElementById("hasil").innerHTML);
+localStorage.setItem("uv26_total", document.getElementById("total").innerText.replace("Total data: ",""));
+localStorage.setItem("uv26_all", allText);
+
+alert("Perubahan disimpan");
+
+}
+
+// FIX HAPUS
+function hapusData(i){
+
+const el = document.getElementById("card_" + i);
+
+if(el){
+el.remove();
+}
+
+localStorage.setItem(
+"uv26_hasil",
+document.getElementById("hasil").innerHTML
+);
+
+}
+
+function hapusRiwayat(){
+
+document.getElementById("input").value = "";
+document.getElementById("hasil").innerHTML = "";
+document.getElementById("total").innerText = "Total data: 0";
+
+allText = "";
+
+localStorage.clear();
+
+}
+
+function downloadTXT(){
+
+const blob = new Blob([allText], {type:'text/plain'});
+
+const a = document.createElement("a");
+
+a.href = URL.createObjectURL(blob);
+
+a.download = "hasil_penyusunan.txt";
+
+a.click();
+
+}
+
+</script>
+
+</body>
+</html>
