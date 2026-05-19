@@ -3,171 +3,331 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ByDataKu</title>
+<title>ByDataKu Dual Mode FINAL</title>
+
 <style>
-body{font-family:Arial;background:#f2f2f2;padding:12px}
-textarea{width:100%;height:230px;padding:10px;font-size:12px;border-radius:10px}
-button{padding:10px;border:none;border-radius:8px;margin:4px;color:#fff;cursor:pointer}
-.b{background:#1565d8}.g{background:#198754}.o{background:#f57c00}.r{background:#dc3545}
-.card{background:#fff;padding:12px;margin-top:12px;border-radius:10px}
-.hasil{white-space:pre-wrap;font-size:12px;line-height:1.6;outline:none}
+body{
+font-family:Arial;
+background:#f3f3f3;
+padding:12px;
+}
+
+textarea{
+width:100%;
+height:220px;
+padding:10px;
+font-size:12px;
+border-radius:10px;
+border:1px solid #ccc;
+}
+
+button{
+border:none;
+border-radius:10px;
+padding:10px 14px;
+font-weight:bold;
+color:white;
+cursor:pointer;
+margin:4px;
+}
+
+.blue{background:#1565d8;}
+.green{background:#198754;}
+.orange{background:#f57c00;}
+.red{background:#dc3545;}
+.gray{background:#6c757d;}
+
+.card{
+background:white;
+padding:14px;
+margin-top:14px;
+border-radius:16px;
+box-shadow:0 2px 6px rgba(0,0,0,.08);
+}
+
+.action{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:12px;
+}
+
+.leftbtn{
+display:flex;
+gap:8px;
+}
+
+.hapusbtn{
+background:#dc3545;
+padding:10px 12px;
+}
+
+.hasil{
+white-space:pre-wrap;
+font-size:13px;
+line-height:1.7;
+outline:none;
+}
+
+.modebox{
+margin-bottom:10px;
+}
+
 </style>
 </head>
+
 <body>
 
-<h2>ByDataKu</h2>
+<h2>ByDataKu Dual Mode FINAL</h2>
 
-<textarea id="input" placeholder="Paste data TAB / BPJS / WhatsApp"></textarea><br>
+<div class="modebox">
+<button class="blue" onclick="setMode('tab')">🔵 Mode TAB</button>
+<button class="green" onclick="setMode('bpjs')">🟢 Mode BPJS</button>
+<b id="modeText">Mode aktif: TAB</b>
+</div>
 
-<button class="b" onclick="susun()">Susun Semua</button>
-<button class="g" onclick="copyAll()">Salin Semua</button>
-<button class="o" onclick="downloadTXT()">Download TXT</button>
-<button class="r" onclick="hapusSemua()">Hapus Riwayat</button>
+<textarea id="input" placeholder="Paste data disini"></textarea><br>
+
+<button class="blue" onclick="susun()">Susun Semua</button>
+<button class="green" onclick="copyAll()">Salin Semua</button>
+<button class="orange" onclick="downloadTXT()">Download TXT</button>
+<button class="gray" onclick="restoreLast()">↩ Restore</button>
+<button class="red" onclick="hapusSemua()">Hapus Riwayat</button>
 
 <div id="total">Total data: 0</div>
+
 <div id="hasil"></div>
 
 <script>
 
+let mode="tab";
 let allText="";
+let deletedHTML="";
 
-function minusBulan(t){
- if(!t||!t.includes("-")) return t;
- let p=t.split("-");
- let d=p[0],m=parseInt(p[1]),y=parseInt(p[2]);
- m--;
- if(m<1){m=12;y--;}
- return d+"-"+String(m).padStart(2,"0")+"-"+y;
-}
-
-function saveData(){
- localStorage.setItem("bdk_input",document.getElementById("input").value);
- localStorage.setItem("bdk_hasil",document.getElementById("hasil").innerHTML);
- localStorage.setItem("bdk_total",document.getElementById("total").innerText);
- localStorage.setItem("bdk_all",allText);
+function setMode(m){
+mode=m;
+document.getElementById("modeText").innerText="Mode aktif: "+m.toUpperCase();
+localStorage.setItem("bdk_mode",mode);
 }
 
 window.onload=function(){
- document.getElementById("input").value=localStorage.getItem("bdk_input")||"";
- document.getElementById("hasil").innerHTML=localStorage.getItem("bdk_hasil")||"";
- document.getElementById("total").innerText=localStorage.getItem("bdk_total")||"Total data: 0";
- allText=localStorage.getItem("bdk_all")||"";
- aktifkanAutoSave();
+
+mode=localStorage.getItem("bdk_mode")||"tab";
+
+document.getElementById("modeText").innerText="Mode aktif: "+mode.toUpperCase();
+
+document.getElementById("input").value=localStorage.getItem("bdk_input")||"";
+
+document.getElementById("hasil").innerHTML=localStorage.getItem("bdk_hasil")||"";
+
+document.getElementById("total").innerText=localStorage.getItem("bdk_total")||"Total data: 0";
+
+allText=localStorage.getItem("bdk_all")||"";
+
+deletedHTML=localStorage.getItem("bdk_deleted")||"";
+
+aktifkanAutoSave();
+
+}
+
+function minusBulan(t){
+
+if(!t||!t.includes("-")) return t;
+
+let p=t.split("-");
+
+let d=p[0];
+let m=parseInt(p[1]);
+let y=parseInt(p[2]);
+
+m--;
+
+if(m<1){
+m=12;
+y--;
+}
+
+return d+"-"+String(m).padStart(2,"0")+"-"+y;
+
+}
+
+function saveData(){
+
+localStorage.setItem("bdk_input",document.getElementById("input").value);
+
+localStorage.setItem("bdk_hasil",document.getElementById("hasil").innerHTML);
+
+localStorage.setItem("bdk_total",document.getElementById("total").innerText);
+
+localStorage.setItem("bdk_all",allText);
+
+localStorage.setItem("bdk_deleted",deletedHTML);
+
 }
 
 function fallbackCopy(text){
- const ta=document.createElement("textarea");
- ta.value=text;
- ta.style.position="fixed";
- ta.style.opacity="0";
- document.body.appendChild(ta);
- ta.focus();
- ta.select();
- document.execCommand("copy");
- document.body.removeChild(ta);
- alert("Berhasil disalin");
+
+let ta=document.createElement("textarea");
+
+ta.value=text;
+
+document.body.appendChild(ta);
+
+ta.select();
+
+document.execCommand("copy");
+
+document.body.removeChild(ta);
+
+alert("Berhasil disalin");
+
 }
 
 function copyReal(text){
- if(navigator.clipboard && window.isSecureContext){
-   navigator.clipboard.writeText(text)
-   .then(()=>alert("Berhasil disalin"))
-   .catch(()=>fallbackCopy(text));
- }else{
-   fallbackCopy(text);
- }
+
+if(navigator.clipboard && window.isSecureContext){
+
+navigator.clipboard.writeText(text)
+.then(()=>alert("Berhasil disalin"))
+.catch(()=>fallbackCopy(text));
+
+}else{
+
+fallbackCopy(text);
+
 }
 
-function aktifkanAutoSave(){
- document.querySelectorAll(".hasil").forEach(el=>{
-   el.addEventListener("input",()=>{
-      updateAll();
-   });
- });
 }
 
 function updateAll(){
- allText="";
- document.querySelectorAll(".hasil").forEach(el=>{
-   allText += el.innerText + "\n\n====================\n\n";
- });
- saveData();
+
+allText="";
+
+document.querySelectorAll(".hasil").forEach(el=>{
+
+allText += el.innerText + "\n\n====================\n\n";
+
+});
+
+saveData();
+
+}
+
+function aktifkanAutoSave(){
+
+document.querySelectorAll(".hasil").forEach(el=>{
+
+el.addEventListener("input",()=>{
+
+updateAll();
+
+});
+
+});
+
 }
 
 function buatCard(text,index){
- const hasil=document.getElementById("hasil");
 
- const card=document.createElement("div");
- card.className="card";
- card.id="c"+index;
+const hasil=document.getElementById("hasil");
 
- card.innerHTML=`
- <button class="g" onclick="copyText(${index})">📋 Salin</button>
- <button class="b" onclick="simpan()">💾 Simpan</button>
- <button class="r" onclick="hapus(${index})">🗑️ Hapus</button>
+const card=document.createElement("div");
 
- <div class="hasil" id="h${index}" contenteditable="true">${text}</div>
- `;
+card.className="card";
 
- hasil.appendChild(card);
+card.id="c"+index;
+
+card.innerHTML=`
+
+<div class="action">
+
+<div class="leftbtn">
+
+<button class="green" onclick="copyText(${index})">📋 Salin</button>
+
+<button class="blue" onclick="simpan()">💾 Simpan</button>
+
+</div>
+
+<button class="hapusbtn" onclick="hapus(${index})">🗑️</button>
+
+</div>
+
+<div class="hasil" id="h${index}" contenteditable="true">${text}</div>
+
+`;
+
+hasil.appendChild(card);
+
 }
 
 function susun(){
 
- const raw=document.getElementById("input").value.trim();
+const raw=document.getElementById("input").value.trim();
 
- document.getElementById("hasil").innerHTML="";
- allText="";
+document.getElementById("hasil").innerHTML="";
 
- let total=0;
+allText="";
 
- // BPJS multiline
- if(raw.includes("Provinsi:")){
+let total=0;
 
-   const blocks=raw.split(/\[\d+\/\d+.*?\]\s*teariky46:/g)
-   .filter(x=>x.trim()!="");
+if(mode==="bpjs"){
 
-   blocks.forEach((b,index)=>{
+const blocks=raw.split(/\[\d+\/\d+.*?\]\s*teariky46:/g).filter(x=>x.trim()!="");
 
-     let kab=(b.match(/Kabupaten:\s*KAB\.\s*([^\n]+)/i)||[])[1]||"";
-     let kec=(b.match(/Kecamatan:\s*([^\n]+)/i)||[])[1]||"";
+blocks.forEach((b,index)=>{
 
-     let nik=(b.match(/\b\d{16}\b/)||[])[0]||"";
-     if(!nik) return;
+let kab=(b.match(/Kabupaten:\s*KAB\.\s*([^\n]+)/i)||[])[1]||"";
 
-     let nama=(b.match(/\n([A-Z ]+)\n(?:PEREMPUAN|LAKI-LAKI)/)||[])[1]||"";
+let kec=(b.match(/Kecamatan:\s*([^\n]+)/i)||[])[1]||"";
 
-     let gender=b.includes("PEREMPUAN")?"WANITA":"PRIA";
+let nik=(b.match(/\b\d{16}\b/)||[])[0]||"";
 
-     let ttl=(b.match(/\d{2}-\d{2}-\d{4}/)||[])[0]||"";
+if(!nik) return;
 
-     let jumlah=(b.match(/JUMLAH KPJ:\s*(\d+)/i)||[])[1]||"1";
+let nama=(b.match(/\n([A-Z ]+)\n(?:PEREMPUAN|LAKI-LAKI)/)||[])[1]||"";
 
-     let kpj=(b.match(/\b19\d{9}\b/)||[])[0]||"";
+let gender=b.includes("PEREMPUAN")?"WANITA":"PRIA";
 
-     let perusahaan="";
-     let lines=b.split("\n").map(x=>x.trim()).filter(x=>x!="");
+let ttl=(b.match(/\d{2}-\d{2}-\d{4}/)||[])[0]||"";
 
-     for(let i=0;i<lines.length;i++){
-       if(/^19\d{9}$/.test(lines[i])){
-         perusahaan=lines[i+1]||"";
-       }
-     }
+let jumlah=(b.match(/JUMLAH KPJ:\s*(\d+)/i)||[])[1]||"1";
 
-     let tglList=b.match(/\d{2}-\d{2}-\d{4}/g)||[];
-     let tanggal=tglList[tglList.length-1]||"";
+let kpj=(b.match(/\b19\d{9}\b/)||[])[0]||"";
 
-     let saldo=(b.match(/Rp([0-9.]+)/i)||[])[1]||"0";
+let perusahaan="";
 
-     let sensor="TUNGGAL";
-     let nominal=saldo;
+let lines=b.split("\n").map(x=>x.trim()).filter(x=>x!="");
 
-     if(jumlah!="1"){
-       sensor="SENSOR JMO OK";
-       nominal="GLOBAL "+saldo;
-     }
+for(let i=0;i<lines.length;i++){
 
-     let text=`*${kab.replace("KAB.","").trim()}, ${kec}
+if(/^19\d{9}$/.test(lines[i])){
+
+perusahaan=lines[i+1]||"";
+
+}
+
+}
+
+let tanggalList=b.match(/\d{2}-\d{2}-\d{4}/g)||[];
+
+let tanggal=tanggalList[tanggalList.length-1]||"";
+
+let saldo=(b.match(/Rp([0-9.]+)/i)||[])[1]||"0";
+
+let sensor="TUNGGAL";
+
+let nominal=saldo;
+
+if(jumlah!="1"){
+
+sensor="SENSOR JMO OK";
+
+nominal="GLOBAL "+saldo;
+
+}
+
+let text=`*${kab.replace("KAB.","").trim()}, ${kec}
 
 ${nik}
 ${gender}
@@ -182,46 +342,59 @@ Qwer123@
 ${kpj}
 ${nama}`;
 
-     allText += text + "\n\n====================\n\n";
+buatCard(text,index);
 
-     buatCard(text,index);
+allText += text + "\n\n====================\n\n";
 
-     total++;
+total++;
 
-   });
+});
 
- } else {
+}else{
 
-   // TAB format
-   const rows=raw.split("\n").filter(x=>x.trim()!="");
+const rows=raw.split("\n").filter(x=>x.trim()!="");
 
-   rows.forEach((row,index)=>{
+rows.forEach((row,index)=>{
 
-     if(!row.includes("\t")) return;
+if(!row.includes("\t")) return;
 
-     const col=row.split("\t");
+const col=row.split("\t");
 
-     if(col.length<13) return;
+if(col.length<13) return;
 
-     let kpj=col[1]||"";
-     let nik=col[2]||"";
-     let nama=col[3]||"";
-     let ttl=col[4]||"";
-     let gender=col[7]=="P"?"WANITA":"PRIA";
-     let jumlah=col[8]||"1";
-     let saldo=Number(col[9]||0).toLocaleString('id-ID');
-     let perusahaan=col[10]||"";
-     let tanggal=minusBulan(col[12]||"");
+let kpj=col[1]||"";
 
-     let sensor="TUNGGAL";
-     let nominal=saldo;
+let nik=col[2]||"";
 
-     if(jumlah!="1"){
-       sensor="SENSOR JMO OK";
-       nominal="GLOBAL "+saldo;
-     }
+let nama=col[3]||"";
 
-     let text=`${nik}
+let ttl=col[4]||"";
+
+let gender=col[7]=="P"?"WANITA":"PRIA";
+
+let jumlah=col[8]||"1";
+
+let saldoRaw=String(col[9]||"0").replace(/\D/g,"");
+
+let saldo=Number(saldoRaw).toLocaleString('id-ID');
+
+let perusahaan=col[10]||"";
+
+let tanggal=minusBulan(col[12]||"");
+
+let sensor="TUNGGAL";
+
+let nominal=saldo;
+
+if(jumlah!="1"){
+
+sensor="SENSOR JMO OK";
+
+nominal="GLOBAL "+saldo;
+
+}
+
+let text=`${nik}
 ${gender}
 ${ttl}
 
@@ -234,60 +407,110 @@ Qwer123@
 ${kpj}
 ${nama}`;
 
-     allText += text + "\n\n====================\n\n";
+buatCard(text,index);
 
-     buatCard(text,index);
+allText += text + "\n\n====================\n\n";
 
-     total++;
+total++;
 
-   });
+});
 
- }
+}
 
- document.getElementById("total").innerText="Total data: "+total;
+document.getElementById("total").innerText="Total data: "+total;
 
- saveData();
+saveData();
 
- aktifkanAutoSave();
+aktifkanAutoSave();
 
 }
 
 function simpan(){
- updateAll();
- alert("Koreksi tersimpan");
+
+updateAll();
+
+alert("Koreksi tersimpan");
+
 }
 
 function hapus(i){
- const el=document.getElementById("c"+i);
- if(el) el.remove();
- updateAll();
+
+let el=document.getElementById("c"+i);
+
+if(el){
+
+deletedHTML=el.outerHTML;
+
+el.remove();
+
+updateAll();
+
+}
+
+}
+
+function restoreLast(){
+
+if(!deletedHTML){
+
+alert("Tidak ada restore");
+
+return;
+
+}
+
+document.getElementById("hasil").insertAdjacentHTML("beforeend",deletedHTML);
+
+aktifkanAutoSave();
+
+updateAll();
+
+deletedHTML="";
+
 }
 
 function copyText(i){
- const el=document.getElementById("h"+i);
- if(el) copyReal(el.innerText);
+
+let el=document.getElementById("h"+i);
+
+if(el){
+
+copyReal(el.innerText);
+
+}
+
 }
 
 function copyAll(){
- updateAll();
- copyReal(allText);
+
+updateAll();
+
+copyReal(allText);
+
 }
 
 function hapusSemua(){
- localStorage.clear();
- document.getElementById("input").value="";
- document.getElementById("hasil").innerHTML="";
- document.getElementById("total").innerText="Total data: 0";
- allText="";
+
+localStorage.clear();
+
+location.reload();
+
 }
 
 function downloadTXT(){
- updateAll();
- const blob=new Blob([allText],{type:'text/plain'});
- const a=document.createElement("a");
- a.href=URL.createObjectURL(blob);
- a.download="hasil_bydataku.txt";
- a.click();
+
+updateAll();
+
+const blob=new Blob([allText],{type:'text/plain'});
+
+const a=document.createElement("a");
+
+a.href=URL.createObjectURL(blob);
+
+a.download="hasil_bydataku.txt";
+
+a.click();
+
 }
 
 </script>
