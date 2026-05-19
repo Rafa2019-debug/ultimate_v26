@@ -3,344 +3,291 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ByDataKu FINAL</title>
+<title>ByDataKu</title>
 <style>
-body{font-family:Arial;background:#f3f3f3;padding:12px}
-textarea{width:100%;height:240px;padding:10px;border-radius:10px;font-size:12px}
-button{padding:10px 14px;border:none;border-radius:10px;color:#fff;margin:5px;cursor:pointer}
-.biru{background:#1565d8}
-.hijau{background:#198754}
-.orange{background:#f57c00}
-.merah{background:#dc3545}
-.card{background:#fff;padding:14px;border-radius:12px;margin-top:14px}
-.hasil{white-space:pre-wrap;font-size:12px;line-height:1.7;outline:none}
+body{font-family:Arial;background:#f2f2f2;padding:12px}
+textarea{width:100%;height:230px;padding:10px;font-size:12px;border-radius:10px}
+button{padding:10px;border:none;border-radius:8px;margin:4px;color:#fff;cursor:pointer}
+.b{background:#1565d8}.g{background:#198754}.o{background:#f57c00}.r{background:#dc3545}
+.card{background:#fff;padding:12px;margin-top:12px;border-radius:10px}
+.hasil{white-space:pre-wrap;font-size:12px;line-height:1.6;outline:none}
 </style>
 </head>
 <body>
 
-<h2>ByDataKu FINAL</h2>
+<h2>ByDataKu</h2>
 
-<textarea id="input" placeholder="Paste data TAB / WhatsApp"></textarea><br>
+<textarea id="input" placeholder="Paste data TAB / BPJS / WhatsApp"></textarea><br>
 
-<button class="biru" onclick="susun()">Susun Semua</button>
-<button class="hijau" onclick="copyAll()">Salin Semua</button>
-<button class="orange" onclick="downloadTXT()">Download TXT</button>
-<button class="merah" onclick="hapusSemua()">Hapus Riwayat</button>
+<button class="b" onclick="susun()">Susun Semua</button>
+<button class="g" onclick="copyAll()">Salin Semua</button>
+<button class="o" onclick="downloadTXT()">Download TXT</button>
+<button class="r" onclick="hapusSemua()">Hapus Riwayat</button>
 
 <div id="total">Total data: 0</div>
-
 <div id="hasil"></div>
 
 <script>
 
-let allText = "";
+let allText="";
 
-function minusBulan(tgl){
-
-if(!tgl || !tgl.includes("-")) return tgl;
-
-let p = tgl.split("-");
-
-let d = p[0];
-let m = parseInt(p[1]);
-let y = parseInt(p[2]);
-
-m--;
-
-if(m < 1){
-m = 12;
-y--;
+function minusBulan(t){
+ if(!t||!t.includes("-")) return t;
+ let p=t.split("-");
+ let d=p[0],m=parseInt(p[1]),y=parseInt(p[2]);
+ m--;
+ if(m<1){m=12;y--;}
+ return d+"-"+String(m).padStart(2,"0")+"-"+y;
 }
 
-m = String(m).padStart(2,"0");
-
-return d + "-" + m + "-" + y;
-
+function saveData(){
+ localStorage.setItem("bdk_input",document.getElementById("input").value);
+ localStorage.setItem("bdk_hasil",document.getElementById("hasil").innerHTML);
+ localStorage.setItem("bdk_total",document.getElementById("total").innerText);
+ localStorage.setItem("bdk_all",allText);
 }
 
-function formatSaldo(x){
+window.onload=function(){
+ document.getElementById("input").value=localStorage.getItem("bdk_input")||"";
+ document.getElementById("hasil").innerHTML=localStorage.getItem("bdk_hasil")||"";
+ document.getElementById("total").innerText=localStorage.getItem("bdk_total")||"Total data: 0";
+ allText=localStorage.getItem("bdk_all")||"";
+ aktifkanAutoSave();
+}
 
-x = String(x).replace(/\D/g,'');
+function fallbackCopy(text){
+ const ta=document.createElement("textarea");
+ ta.value=text;
+ ta.style.position="fixed";
+ ta.style.opacity="0";
+ document.body.appendChild(ta);
+ ta.focus();
+ ta.select();
+ document.execCommand("copy");
+ document.body.removeChild(ta);
+ alert("Berhasil disalin");
+}
 
-return Number(x || 0).toLocaleString('id-ID');
+function copyReal(text){
+ if(navigator.clipboard && window.isSecureContext){
+   navigator.clipboard.writeText(text)
+   .then(()=>alert("Berhasil disalin"))
+   .catch(()=>fallbackCopy(text));
+ }else{
+   fallbackCopy(text);
+ }
+}
 
+function aktifkanAutoSave(){
+ document.querySelectorAll(".hasil").forEach(el=>{
+   el.addEventListener("input",()=>{
+      updateAll();
+   });
+ });
 }
 
 function updateAll(){
+ allText="";
+ document.querySelectorAll(".hasil").forEach(el=>{
+   allText += el.innerText + "\n\n====================\n\n";
+ });
+ saveData();
+}
 
-let gabung = "";
+function buatCard(text,index){
+ const hasil=document.getElementById("hasil");
 
-document.querySelectorAll(".hasil").forEach(el=>{
+ const card=document.createElement("div");
+ card.className="card";
+ card.id="c"+index;
 
-gabung += el.innerText + "\n\n====================\n\n";
+ card.innerHTML=`
+ <button class="g" onclick="copyText(${index})">📋 Salin</button>
+ <button class="b" onclick="simpan()">💾 Simpan</button>
+ <button class="r" onclick="hapus(${index})">🗑️ Hapus</button>
 
-});
+ <div class="hasil" id="h${index}" contenteditable="true">${text}</div>
+ `;
 
-allText = gabung;
-
-localStorage.setItem("bydataku_all", allText);
-localStorage.setItem("bydataku_hasil", document.getElementById("hasil").innerHTML);
-
+ hasil.appendChild(card);
 }
 
 function susun(){
 
-let raw = document.getElementById("input").value;
+ const raw=document.getElementById("input").value.trim();
 
-let hasil = document.getElementById("hasil");
+ document.getElementById("hasil").innerHTML="";
+ allText="";
 
-hasil.innerHTML = "";
+ let total=0;
 
-allText = "";
+ // BPJS multiline
+ if(raw.includes("Provinsi:")){
 
-let blocks = raw.split(/\n(?=\[|\d)/);
+   const blocks=raw.split(/\[\d+\/\d+.*?\]\s*teariky46:/g)
+   .filter(x=>x.trim()!="");
 
-let total = 0;
+   blocks.forEach((b,index)=>{
 
-blocks.forEach((row,index)=>{
+     let kab=(b.match(/Kabupaten:\s*KAB\.\s*([^\n]+)/i)||[])[1]||"";
+     let kec=(b.match(/Kecamatan:\s*([^\n]+)/i)||[])[1]||"";
 
-row = row.trim();
+     let nik=(b.match(/\b\d{16}\b/)||[])[0]||"";
+     if(!nik) return;
 
-if(!row) return;
+     let nama=(b.match(/\n([A-Z ]+)\n(?:PEREMPUAN|LAKI-LAKI)/)||[])[1]||"";
 
-row = row.replace(/success/gi,'');
+     let gender=b.includes("PEREMPUAN")?"WANITA":"PRIA";
 
-let nik = (row.match(/\b\d{16}\b/)||[])[0] || "";
-if(!nik) return;
+     let ttl=(b.match(/\d{2}-\d{2}-\d{4}/)||[])[0]||"";
 
-let noKpj = (row.match(/\b19\d{9}\b/)||[])[0] || "";
+     let jumlah=(b.match(/JUMLAH KPJ:\s*(\d+)/i)||[])[1]||"1";
 
-let ttl = "";
+     let kpj=(b.match(/\b19\d{9}\b/)||[])[0]||"";
 
-let semuaTanggal = row.match(/\d{2}-\d{2}-\d{4}/g);
+     let perusahaan="";
+     let lines=b.split("\n").map(x=>x.trim()).filter(x=>x!="");
 
-if(semuaTanggal && semuaTanggal.length){
-ttl = semuaTanggal[0];
-}
+     for(let i=0;i<lines.length;i++){
+       if(/^19\d{9}$/.test(lines[i])){
+         perusahaan=lines[i+1]||"";
+       }
+     }
 
-let tanggalInput = "";
+     let tglList=b.match(/\d{2}-\d{2}-\d{4}/g)||[];
+     let tanggal=tglList[tglList.length-1]||"";
 
-if(semuaTanggal && semuaTanggal.length > 1){
-tanggalInput = semuaTanggal[semuaTanggal.length-1];
-}
+     let saldo=(b.match(/Rp([0-9.]+)/i)||[])[1]||"0";
 
-let jk = row.includes(" P ") ? "WANITA" : "PRIA";
+     let sensor="TUNGGAL";
+     let nominal=saldo;
 
-let jumlah = "1";
+     if(jumlah!="1"){
+       sensor="SENSOR JMO OK";
+       nominal="GLOBAL "+saldo;
+     }
 
-let jumlahMatch = row.match(/\s([1-9])\s/);
+     let text=`*${kab.replace("KAB.","").trim()}, ${kec}
 
-if(jumlahMatch){
-jumlah = jumlahMatch[1];
-}
-
-let saldo = "0";
-
-let saldoList = row.match(/\b\d{6,8}\b/g);
-
-if(saldoList && saldoList.length){
-saldo = saldoList[saldoList.length-1];
-}
-
-let perusahaan = "";
-
-let perusahaanMatch = row.match(/[A-Z& ]{5,}(?=\s\d{2}-\d{2}-\d{4})/);
-
-if(perusahaanMatch){
-perusahaan = perusahaanMatch[0].trim();
-}
-
-let nama = "";
-
-let afterNik = row.split(nik)[1] || "";
-
-let namaMatch = afterNik.match(/[A-Z ]{5,}/);
-
-if(namaMatch){
-nama = namaMatch[0].trim();
-}
-
-let sensor = "TUNGGAL";
-let nominal = formatSaldo(saldo);
-
-if(jumlah !== "1"){
-sensor = "SENSOR JMO OK";
-nominal = "GLOBAL " + nominal;
-}
-
-let text = `${nik}
-${jk}
+${nik}
+${gender}
 ${ttl}
 
 ${sensor}
 ${nominal}
 ${perusahaan}
-N/A ${minusBulan(tanggalInput)}
+N/A ${minusBulan(tanggal)}
 
 Qwer123@
-${noKpj}
+${kpj}
 ${nama}`;
 
-allText += text + "\n\n====================\n\n";
+     allText += text + "\n\n====================\n\n";
 
-total++;
+     buatCard(text,index);
 
-let card = document.createElement("div");
+     total++;
 
-card.className = "card";
-card.id = "card_" + index;
+   });
 
-card.innerHTML = `
-<button class="hijau" onclick="copyText(${index})">📋 Salin</button>
-<button class="biru" onclick="simpanKoreksi()">💾 Simpan</button>
-<button class="merah" onclick="hapusData(${index})">🗑️ Hapus</button>
+ } else {
 
-<div class="hasil" id="h${index}" contenteditable="true">${text}</div>
-`;
+   // TAB format
+   const rows=raw.split("\n").filter(x=>x.trim()!="");
 
-hasil.appendChild(card);
+   rows.forEach((row,index)=>{
 
-});
+     if(!row.includes("\t")) return;
 
-document.getElementById("total").innerText = "Total data: " + total;
+     const col=row.split("\t");
 
-localStorage.setItem("bydataku_input",raw);
-localStorage.setItem("bydataku_total",total);
+     if(col.length<13) return;
 
-updateAll();
+     let kpj=col[1]||"";
+     let nik=col[2]||"";
+     let nama=col[3]||"";
+     let ttl=col[4]||"";
+     let gender=col[7]=="P"?"WANITA":"PRIA";
+     let jumlah=col[8]||"1";
+     let saldo=Number(col[9]||0).toLocaleString('id-ID');
+     let perusahaan=col[10]||"";
+     let tanggal=minusBulan(col[12]||"");
 
-aktifkanAutoSave();
+     let sensor="TUNGGAL";
+     let nominal=saldo;
+
+     if(jumlah!="1"){
+       sensor="SENSOR JMO OK";
+       nominal="GLOBAL "+saldo;
+     }
+
+     let text=`${nik}
+${gender}
+${ttl}
+
+${sensor}
+${nominal}
+${perusahaan}
+N/A ${tanggal}
+
+Qwer123@
+${kpj}
+${nama}`;
+
+     allText += text + "\n\n====================\n\n";
+
+     buatCard(text,index);
+
+     total++;
+
+   });
+
+ }
+
+ document.getElementById("total").innerText="Total data: "+total;
+
+ saveData();
+
+ aktifkanAutoSave();
 
 }
 
-function aktifkanAutoSave(){
-
-document.querySelectorAll(".hasil").forEach(el=>{
-
-el.addEventListener("input", function(){
-
-updateAll();
-
-});
-
-});
-
+function simpan(){
+ updateAll();
+ alert("Koreksi tersimpan");
 }
 
-window.onload = function(){
-
-let i = localStorage.getItem("bydataku_input");
-let h = localStorage.getItem("bydataku_hasil");
-let t = localStorage.getItem("bydataku_total");
-let a = localStorage.getItem("bydataku_all");
-
-if(i) document.getElementById("input").value = i;
-if(h) document.getElementById("hasil").innerHTML = h;
-if(t) document.getElementById("total").innerText = "Total data: " + t;
-if(a) allText = a;
-
-aktifkanAutoSave();
-
-}
-
-function fallback(text){
-
-let ta = document.createElement("textarea");
-
-ta.value = text;
-
-document.body.appendChild(ta);
-
-ta.select();
-
-document.execCommand("copy");
-
-document.body.removeChild(ta);
-
+function hapus(i){
+ const el=document.getElementById("c"+i);
+ if(el) el.remove();
+ updateAll();
 }
 
 function copyText(i){
-
-let el = document.getElementById("h"+i);
-
-if(!el) return;
-
-let text = el.innerText;
-
-if(navigator.clipboard){
-
-navigator.clipboard.writeText(text).catch(()=>fallback(text));
-
-}else{
-
-fallback(text);
-
-}
-
+ const el=document.getElementById("h"+i);
+ if(el) copyReal(el.innerText);
 }
 
 function copyAll(){
-
-updateAll();
-
-if(navigator.clipboard){
-
-navigator.clipboard.writeText(allText);
-
-}else{
-
-fallback(allText);
-
-}
-
-}
-
-function simpanKoreksi(){
-
-updateAll();
-
-alert("Koreksi berhasil disimpan");
-
-}
-
-function hapusData(i){
-
-let el = document.getElementById("card_" + i);
-
-if(el){
-el.remove();
-}
-
-updateAll();
-
+ updateAll();
+ copyReal(allText);
 }
 
 function hapusSemua(){
-
-localStorage.clear();
-
-document.getElementById("input").value = "";
-document.getElementById("hasil").innerHTML = "";
-document.getElementById("total").innerText = "Total data: 0";
-
-allText = "";
-
+ localStorage.clear();
+ document.getElementById("input").value="";
+ document.getElementById("hasil").innerHTML="";
+ document.getElementById("total").innerText="Total data: 0";
+ allText="";
 }
 
 function downloadTXT(){
-
-updateAll();
-
-let blob = new Blob([allText],{type:'text/plain'});
-
-let a = document.createElement("a");
-
-a.href = URL.createObjectURL(blob);
-
-a.download = "hasil_bydataku.txt";
-
-a.click();
-
+ updateAll();
+ const blob=new Blob([allText],{type:'text/plain'});
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="hasil_bydataku.txt";
+ a.click();
 }
 
 </script>
